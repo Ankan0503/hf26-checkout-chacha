@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Checkout Chacha</string>
+    <string name="a11y_description">Checkout Chacha looks at Amazon and Flipkart, and only those apps, to comment on what you add to your cart. What it sees is sent only to your own laptop, never to the internet.</string>
+</resources>

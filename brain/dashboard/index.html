@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout Chacha</title>
+<style>
+  :root {
+    --bg: #0f0f14; --panel: #17171f; --line: #262633; --text: #ececf3; --muted: #9b9bb0;
+    --violet: #8b7cff; --cyan: #6fe3ff; --gold: #ffb800; --blue: #3d8bff; --red: #ff3b30;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 16px 64px; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .orb { width: 44px; height: 44px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, var(--cyan), var(--violet) 55%, #3b2f8f);
+    box-shadow: 0 0 24px rgba(139,124,255,.6); animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 50% { box-shadow: 0 0 40px rgba(111,227,255,.7); } }
+  h1 { margin: 0; font-size: 24px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 2px 0 0; font-size: 14px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  .warn b { color: var(--red); }
+  button, select, input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--violet); border-color: var(--violet); color: #fff; }
+  button.danger { border-color: var(--red); color: var(--red); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .muted { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 7px 6px; border-top: 1px solid var(--line); }
+  td.amt { text-align: right; white-space: nowrap; }
+  .pick button { padding: 4px 10px; margin-left: 4px; opacity: .45; }
+  .pick button.on { opacity: 1; border-color: var(--violet); }
+  .bar { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; margin: 6px 0 12px; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--violet), var(--cyan)); }
+  .list { max-height: 420px; overflow: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .line { padding: 8px 0; border-top: 1px solid var(--line); }
+  .mood { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .roast { color: var(--red); } .normal { color: var(--blue); } .praise { color: var(--gold); }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--violet); border-radius: 10px; padding: 8px 14px; display: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="orb" aria-hidden="true"></div>
+    <div>
+      <h1>Checkout Chacha</h1>
+      <p class="sub">Everything on this page stays on this laptop. Nothing here is sent anywhere.</p>
+    </div>
+  </header>
+
+  <section>
+    <h2>Your money</h2>
+    <div class="stats" id="stats"><p class="muted">Load a bank statement to see this.</p></div>
+  </section>
+
+  <section>
+    <h2>Bank statement</h2>
+    <p class="muted" id="stmt-status">No statement loaded yet. Export a CSV from your net banking. Any Indian bank's format works.</p>
+    <div class="row">
+      <input type="file" id="file" accept=".csv,text/csv">
+      <button class="primary" id="upload">Upload</button>
+      <button id="sample">Use the sample student instead</button>
+    </div>
+    <div id="subs"></div>
+  </section>
+
+  <section>
+    <h2>Teach Chacha what you regret</h2>
+    <p class="muted">Mark past purchases 😊 worth it or 😬 regret. TabPFN learns your pattern from these rows alone. It needs at least <span id="need">12</span>, with both kinds; around 40 is better.</p>
+    <div class="bar"><i id="progress" style="width:0%"></i></div>
+    <p class="muted" id="label-status"></p>
+    <div class="list"><table id="txns"></table></div>
+  </section>
+
+  <section>
+    <h2>Settings</h2>
+    <div class="grid">
+      <label>Fun budget per month (₹)<input type="number" id="fun_budget" min="0" step="500"></label>
+      <label>Big-ticket threshold (₹)<input type="number" id="big_ticket" min="0" step="500"></label>
+      <label>What you earn per hour (₹, optional)<input type="number" id="hourly_income" min="0" step="10"></label>
+      <label>Roast level
+        <select id="roast_level"><option value="gentle">Gentle</option><option value="honest">Honest</option><option value="savage">Savage</option></select>
+      </label>
+      <label>Language
+        <select id="language"><option value="en">English</option><option value="hinglish">Hinglish</option></select>
+      </label>
+      <label>Who writes the lines
+        <select id="use_gemma"><option value="true">Gemma 4 (local)</option><option value="false">Templates only</option></select>
+      </label>
+    </div>
+    <p><button class="primary" id="save">Save settings</button></p>
+  </section>
+
+  <section>
+    <h2>Chacha's record</h2>
+    <div class="stats" id="record"></div>
+    <div id="recent"></div>
+  </section>
+
+  <section>
+    <h2>Delete all my data</h2>
+    <p class="muted">Removes your statement, labels, verdicts and every saved screen from this laptop.</p>
+    <button class="danger" id="wipe">Delete everything</button>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const CODE = "{{CODE}}";
+const rupees = n => n == null ? "—" : "₹" + Math.round(n).toLocaleString("en-IN");
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { ...options, headers: { "X-Chacha-Token": CODE, ...(options.headers || {}) } });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+  return res.json();
+}
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.style.display = "none"), 2600);
+}
+function stat(value, label, warn) {
+  return `<div class="stat${warn ? " warn" : ""}"><b>${value}</b><span>${label}</span></div>`;
+}
+
+async function refresh() {
+  const s = await api("/v1/summary");
+  const st = s.statement;
+  for (const key of ["fun_budget", "big_ticket", "hourly_income", "roast_level", "language"]) $(key).value = s.settings[key];
+  $("use_gemma").value = String(s.settings.use_gemma);
+  $("need").textContent = s.labels.needed;
+
+  if (st) {
+    const food = Object.entries(st.food_delivery_by_month).slice(-1)[0];
+    $("stats").innerHTML =
+      stat(rupees(st.balance), `balance on ${st.to}`) +
+      stat(rupees(st.month_spend_so_far), "spent so far this month") +
+      (st.runs_out_day
+        ? stat(`Day ${st.runs_out_day}`, "money runs out at this rate (TabPFN forecast)", true)
+        : stat(rupees(st.month_end_balance), "left at month end, at this rate (TabPFN forecast)")) +
+      (food ? stat(rupees(food[1]), `Swiggy + Zomato, ${food[0]}`) : "");
+    $("stmt-status").textContent = `${st.transactions} transactions, ${st.from} to ${st.to}.`;
+    const subs = st.subscriptions;
+    $("subs").innerHTML = subs.length
+      ? `<p class="muted" style="margin-top:12px">Paying every month: ` +
+        subs.map(x => `${esc(x.merchant)} ${rupees(x.amount)}`).join(" · ") + `</p>`
+      : "";
+  }
+
+  const l = s.labels;
+  $("progress").style.width = Math.min(100, (l.total / 40) * 100) + "%";
+  $("label-status").textContent = `${l.total} labelled (${l.regret} regret). ` +
+    (l.ready ? "Chacha is using your regret pattern." : "Not enough yet; regret % stays off until then.");
+
+  const r = s.record;
+  $("record").innerHTML = stat(r.verdicts, "verdicts") + stat(r.roasts, "roasts") +
+    stat(rupees(r.saved), "saved by removing things after a roast") + stat(r.sleeping.length, "sleeping on it");
+  $("recent").innerHTML = r.recent.map(v =>
+    `<div class="line"><span class="mood ${v.mood}">${v.mood}</span> ${rupees(v.price)}${v.decision ? " · " + esc(v.decision) : ""}<br>${esc(v.line)}</div>`).join("");
+}
+
+async function loadTxns() {
+  const rows = await api("/v1/transactions");
+  $("txns").innerHTML = rows.map(t => `
+    <tr data-id="${t.id}">
+      <td class="muted">${t.day.slice(5)}</td><td>${esc(t.merchant)}<br><span class="muted">${esc(t.category)}</span></td>
+      <td class="amt">${rupees(t.amount)}</td>
+      <td class="pick amt"><button data-v="0" class="${t.label === 0 ? "on" : ""}" title="Worth it">😊</button><button data-v="1" class="${t.label === 1 ? "on" : ""}" title="Regret">😬</button></td>
+    </tr>`).join("") || `<tr><td class="muted">No statement yet.</td></tr>`;
+}
+
+$("txns").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const tr = b.closest("tr"), on = b.classList.contains("on");
+  await api("/v1/labels", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ txn_id: +tr.dataset.id, regret: on ? null : +b.dataset.v }) });
+  tr.querySelectorAll("button").forEach(x => x.classList.toggle("on", !on && x === b));
+  refresh();
+});
+
+$("upload").onclick = async () => {
+  const f = $("file").files[0]; if (!f) return toast("Pick a CSV first.");
+  const body = new FormData(); body.append("file", f);
+  toast("Reading statement and running the TabPFN forecast…");
+  try { const r = await api("/v1/statement", { method: "POST", body }); toast(`${r.transactions} transactions loaded.`); }
+  catch (err) { return toast(err.message); }
+  await Promise.all([refresh(), loadTxns()]);
+};
+$("sample").onclick = async () => {
+  toast("Loading the sample student and running the TabPFN forecast…");
+  const r = await api("/v1/statement/sample", { method: "POST" });
+  toast(`Sample loaded: ${r.transactions} transactions, forecast in ${r.forecast_seconds}s.`);
+  await Promise.all([refresh(), loadTxns()]);
+};
+$("save").onclick = async () => {
+  const body = {};
+  for (const key of ["fun_budget", "big_ticket", "hourly_income"]) body[key] = +$(key).value;
+  for (const key of ["roast_level", "language"]) body[key] = $(key).value;
+  body.use_gemma = $("use_gemma").value === "true";
+  await api("/v1/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  toast("Saved."); refresh();
+};
+$("wipe").onclick = async () => {
+  if (!confirm("Delete your statement, labels, verdicts and saved screens from this laptop?")) return;
+  await api("/v1/wipe", { method: "POST" }); toast("Everything deleted.");
+  location.reload();
+};
+
+refresh(); loadTxns();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    packageNames is the allow-list. Android delivers events from these apps and
+    no others, so the service cannot see your chats, your bank app, or anything
+    else. ChachaService reads this list at runtime; this file is the only copy.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeViewClicked|typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagIncludeNotImportantViews|flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/a11y_description"
+    android:notificationTimeout="200"
+    android:packageNames="in.amazon.mShop.android.shopping,com.amazon.mShop.android.shopping,com.flipkart.android" />
